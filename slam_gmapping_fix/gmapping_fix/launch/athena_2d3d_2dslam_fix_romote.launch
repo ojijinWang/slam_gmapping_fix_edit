@@ -1,0 +1,100 @@
+<launch>
+  <node name="keyboard"			pkg="keyboard"			type="keyboard"				output="screen">
+  </node>
+  <node name="robot"			pkg="nav_project_athena"	type="athena_robot_node"		output="screen">
+  </node>
+  <node name="remote_keyboard"		pkg="nav_project_athena"	type="athena_remote_keyboard_node"	output="screen">
+  </node>
+  <node respawn="true"		pkg="joy"		type="joy_node"		name="ps3_robot_joy" >
+    <param name="dev"		type="string"		value="/dev/input/js0" />
+    <param name="deadzone"	value="0.05" />
+  </node>
+  <node name="remote_ps3joy"		pkg="nav_project_athena"	type="athena_remote_ps3joy_node"	output="screen">
+  </node>
+  <node name="odometry_publisher"	pkg="nav_project_athena"	type="athena_odometry_publisher_node"	output="screen">
+  </node>
+  <node name="future_pose"		pkg="nav_project_athena"	type="athena_future_pose_predict_node"	output="screen">
+  </node>
+  <node name="path_recoder"		pkg="nav_project_athena"	type="athena_path_recoder_node"		output="screen">
+  </node>
+  <node name="slam_gmapping_fix"	pkg="gmapping_fix" 		type="slam_gmapping_fix"  args="scan:=most_intense" output="screen">
+    <param name="throttle_scans" value="1"/>       <!--throw away scan datas-->
+    <param name="base_frame"     value="base_link"/>
+    <param name="odom_frame"     value="odom"/>
+    <param name="map_frame"      value="map"/>
+    <param name="maxRange"       value="30.0"/>
+    <param name="minRange"       value="1.7"/>
+    <param name="maxUrange"      value="20.0"/>
+    <param name="lskip"          value="0"/>       <!--throw away scan datas-->
+    <param name="particles"      value="20"/>
+    <param name="x_min"          value="-200.0"/>
+    <param name="x_max"          value="200.0"/>
+    <param name="y_min"          value="-200.0"/>
+    <param name="y_max"          value="200.0"/>
+    <param name="delta"          value="0.05"/>    <!--map grid size-->
+    <param name="map_update_interval"  value="1.0"/>
+    <param name="transform_publish_period"  value="0.02"/>
+    <param name="iterations"     value="1"/>       <!--number of scan for a scan matching used-->
+    <param name="angularUpdate"  value="0.1"/>     <!--update if odomerty bigger than-->
+    <param name="linearUpdate"   value="0.1"/>     <!--update if odomerty bigger than-->
+    <param name="srr"      value="0.1"/>   <!--Odometry error in translation as a function of translation; linear noise component (x and y)-->
+    <param name="stt"      value="0.1"/>   <!--Odometry error in rotation as a function of rotation; angular noise component (theta)-->
+    <param name="srt"      value="0.01"/>  <!--Odometry error in translation as a function of rotation; linear -> angular noise component-->
+    <param name="str"      value="0.01"/>  <!--Odometry error in rotation as a function of translation; angular -> linear noise component-->
+  </node> 
+
+  <!-- declare arguments with default values -->
+  <arg name="calibration" default="$(find velodyne_pointcloud)/params/VLP16db.yaml"/>
+  <arg name="device_ip" default="192.168.1.201" />
+  <arg name="frame_id" default="laser_3d" />
+  <arg name="manager" default="$(arg frame_id)_nodelet_manager" />
+  <arg name="max_range" default="50.0" />
+  <arg name="min_range" default="0.55" />
+  <arg name="pcap" default="" />
+  <arg name="port" default="2368" />
+  <arg name="read_fast" default="false" />
+  <arg name="read_once" default="false" />
+  <arg name="repeat_delay" default="0.0" />
+  <arg name="rpm" default="600.0" />
+  <!-- start nodelet manager and driver nodelets -->
+  <include file="$(find velodyne_driver)/launch/nodelet_manager.launch">
+    <arg name="device_ip" value="$(arg device_ip)"/>
+    <arg name="frame_id" value="$(arg frame_id)"/>
+    <arg name="manager" value="$(arg manager)" />
+    <arg name="model" value="VLP16"/>
+    <arg name="pcap" value="$(arg pcap)"/>
+    <arg name="port" value="$(arg port)"/>
+    <arg name="read_fast" value="$(arg read_fast)"/>
+    <arg name="read_once" value="$(arg read_once)"/>
+    <arg name="repeat_delay" value="$(arg repeat_delay)"/>
+    <arg name="rpm" value="$(arg rpm)"/>
+  </include>
+  <!-- start cloud nodelet -->
+  <include file="$(find velodyne_pointcloud)/launch/cloud_nodelet.launch">
+    <arg name="calibration" value="$(arg calibration)"/>
+    <arg name="manager" value="$(arg manager)" />
+    <arg name="max_range" value="$(arg max_range)"/>
+    <arg name="min_range" value="$(arg min_range)"/>
+  </include>
+  <!-- into 2d laserscan -->
+  <node name="vlp16_laserscan_above" pkg="pointcloud_to_laserscan" type="pointcloud_to_laserscan_node">
+    <remap from="cloud_in" to="velodyne_points"/>
+    <remap from="scan" to="most_intense"/>
+    <param name="target_frame" value="laser_3d"/>
+    <param name="min_height" value="-0.4"/>
+    <param name="max_height" value="0.25"/>
+    <param name="angle_min" value="-2.098"/>
+    <param name="angle_max" value="2.098"/>
+    <param name="angle_increment" value="0.01"/>
+    <param name="scan_time" value="0.05"/>		<!--20Hz-->
+    <param name="range_min" value="0.55"/>
+    <param name="range_max" value="30"/>
+    <param name="use_inf" value="true"/>
+    <param name="concurrency_level" value="0"/>
+  </node>
+
+  <node name="rqt_graph"                 pkg="rqt_graph"                 type="rqt_graph"             output="screen">
+  </node>
+  <node name="rviz"                      pkg="rviz"                      type="rviz"                  output="screen">
+  </node>
+</launch>
