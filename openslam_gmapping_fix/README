@@ -2,5 +2,5 @@ This is a fork from gmapping at https://openslam.informatik.uni-freiburg.de/data
 It includes a few patches that could be pushed upstream if needed
 
 ## Fix includes
-# add a function that can wrrite gridmap data
-# add several functions that change read and write particle data by EKF
+# add a function that can write gridmap data
+# add several functions that read and write particles data by EKF
